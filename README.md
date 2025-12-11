@@ -17,15 +17,28 @@ View complete payment history for any account
 
 Smooth navigation + splash screen
 
-🏗️ Tech Stack
+🛠️ Tech Stack:
+Frontend
 
-Frontend: React Native (Expo), React Navigation, Axios
+React Native (Expo) – Build cross-platform mobile apps with a single JavaScript codebase
 
-Backend: Node.js, Express
+React Navigation – Navigate between screens smoothly
 
-Database: Supabase (Postgres)
+Axios – Make API requests to backend
 
-Deployment: Render (Backend), EAS (APK Build)
+Expo EAS – Build and generate APK for Android devices
+
+Backend
+
+Node.js + Express.js – Lightweight, fast REST API server
+
+Supabase (PostgreSQL) – Cloud-hosted SQL database for storing customers & payments
+
+Deployment
+
+Render – Hosted backend API with automatic redeployments
+
+Expo EAS Build – Cloud service used to generate the production APK
 
 🌐 Live Backend URL
 https://inav-app.onrender.com
