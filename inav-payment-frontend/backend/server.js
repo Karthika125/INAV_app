@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
+// Load Supabase keys from environment
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -12,23 +13,31 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   process.exit(1);
 }
 
+// Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get('/', (req, res) => res.send('inav-payment-backend is running'));
+// Root health check endpoint
+app.get('/', (req, res) => {
+  res.send('inav-payment-backend is running');
+});
 
-// GET /customers
+// GET /customers → fetch all customers
 app.get('/customers', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('customers').select('*').order('id', { ascending: true });
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('id', { ascending: true });
+
     if (error) {
       console.error('Supabase error (customers):', error);
       return res.status(500).json({ error: error.message || error });
     }
+
     res.json(data);
   } catch (err) {
     console.error('Server error (customers):', err);
@@ -36,15 +45,16 @@ app.get('/customers', async (req, res) => {
   }
 });
 
-// POST /payments
+// POST /payments → record payment
 app.post('/payments', async (req, res) => {
   try {
     const { account_number, payment_amount } = req.body;
+
     if (!account_number || payment_amount == null) {
       return res.status(400).json({ error: 'account_number and payment_amount required' });
     }
 
-    // find customer
+    // Find customer by account number
     const { data: customer, error: findErr } = await supabase
       .from('customers')
       .select('*')
@@ -56,9 +66,12 @@ app.post('/payments', async (req, res) => {
       console.error('Supabase find error:', findErr);
       return res.status(500).json({ error: findErr.message || findErr });
     }
-    if (!customer) return res.status(404).json({ error: 'Account not found' });
 
-    const toInsert = {
+    if (!customer) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    const newPayment = {
       customer_id: customer.id,
       account_number,
       payment_amount,
@@ -66,38 +79,50 @@ app.post('/payments', async (req, res) => {
       status: 'SUCCESS'
     };
 
-    const { data: inserted, error: insertErr } = await supabase.from('payments').insert(toInsert).select();
+    const { data: inserted, error: insertErr } = await supabase
+      .from('payments')
+      .insert(newPayment)
+      .select();
+
     if (insertErr) {
       console.error('Supabase insert error:', insertErr);
       return res.status(500).json({ error: insertErr.message || insertErr });
     }
+
     res.status(201).json({ message: 'Payment recorded', payment: inserted[0] });
+
   } catch (err) {
     console.error('Server error (payments):', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// GET /payments/:account_number
+// GET /payments/:account_number → fetch all payments for an account
 app.get('/payments/:account_number', async (req, res) => {
   try {
-    const account = req.params.account_number;
+    const account_number = req.params.account_number;
+
     const { data, error } = await supabase
       .from('payments')
       .select('*')
-      .eq('account_number', account)
+      .eq('account_number', account_number)
       .order('payment_date', { ascending: false });
 
     if (error) {
       console.error('Supabase error (payments):', error);
       return res.status(500).json({ error: error.message || error });
     }
+
     res.json(data);
+
   } catch (err) {
     console.error('Server error (get payments):', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
+// IMPORTANT: Use Render-assigned port
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
